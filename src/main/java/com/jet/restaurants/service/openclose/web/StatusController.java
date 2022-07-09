@@ -1,5 +1,7 @@
 package com.jet.restaurants.service.openclose.web;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jet.restaurants.service.openclose.domain.Restaurant;
 import com.jet.restaurants.service.openclose.repo.RestaurantRepository;
 import com.jet.restaurants.service.openclose.web.requests.UpdateRestaurantStatusRequest;
@@ -7,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -16,20 +19,30 @@ import java.util.NoSuchElementException;
 @RequestMapping(path = "/restaurants/{restaurantId}/status")
 public class StatusController {
     private RestaurantRepository restaurantRepository;
+    private static final String TOPIC = "restaurants-status";
 
     @Autowired
-    public StatusController(RestaurantRepository restaurantRepository) {
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+
+    private final ObjectMapper objectMapper;
+    @Autowired
+    public StatusController(RestaurantRepository restaurantRepository, ObjectMapper objectMapper) {
         this.restaurantRepository = restaurantRepository;
+        this.objectMapper = objectMapper;
     }
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
     @KafkaHandler
     public Restaurant updateRestaurantStatus(@PathVariable(value = "restaurantId") Integer restaurantId,
-                                       @RequestBody UpdateRestaurantStatusRequest request) {
+                                       @RequestBody UpdateRestaurantStatusRequest request) throws JsonProcessingException {
         Restaurant restaurant = verifyRestaurant(restaurantId);
         restaurant.setStatus(request.getStatus());
         restaurantRepository.save(restaurant);
+        String orderAsMessage = objectMapper.writeValueAsString(restaurant);
+
+        kafkaTemplate.send(TOPIC, orderAsMessage);
 
         return restaurant;
     }
