@@ -34,9 +34,11 @@ public class RestaurantService {
 
     public void sendMessage(String message) {
 
+        //send message to the kafka topic
         ListenableFuture<SendResult<String, String>> future =
                 kafkaTemplate.send(TOPIC_RES_STATUS, message);
 
+        //adding callback methods for succcess and failure
         future.addCallback(new ListenableFutureCallback<>() {
 
             @Override

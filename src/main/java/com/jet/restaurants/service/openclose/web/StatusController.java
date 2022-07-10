@@ -3,6 +3,7 @@ package com.jet.restaurants.service.openclose.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jet.restaurants.service.openclose.domain.Restaurant;
+import com.jet.restaurants.service.openclose.exception.RestaurantManagementException;
 import com.jet.restaurants.service.openclose.repo.RestaurantRepository;
 import com.jet.restaurants.service.openclose.service.RestaurantService;
 import com.jet.restaurants.service.openclose.web.requests.UpdateRestaurantStatusRequest;
@@ -36,12 +37,21 @@ public class StatusController {
     @ResponseStatus(HttpStatus.OK)
     @KafkaHandler
     public Restaurant updateRestaurantStatus(@PathVariable(value = "restaurantId") Integer restaurantId,
-                                       @RequestBody UpdateRestaurantStatusRequest request) throws JsonProcessingException {
+                                       @RequestBody UpdateRestaurantStatusRequest request) {
         Restaurant restaurant = verifyRestaurant(restaurantId);
         restaurant.setStatus(request.getStatus());
         restaurantRepository.save(restaurant);
         log.info("Saving restaurant data - Success");
-        String orderAsMessage = objectMapper.writeValueAsString(restaurant);
+        String orderAsMessage;
+
+        try {
+            orderAsMessage = objectMapper.writeValueAsString(restaurant);
+        }
+        // catch if any json processing exeption and then pass
+         catch(JsonProcessingException jsonProcessingException){
+            //passing the exception and then this will be catched from central exception handling
+             throw new RestaurantManagementException("invalid.json.format",jsonProcessingException.getMessage() , "");
+         }
 
         restaurantService.sendMessage(orderAsMessage);
 
