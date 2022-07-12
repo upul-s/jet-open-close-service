@@ -5,6 +5,11 @@ services:
       context: .
     ports:
       - 8082:8080
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
         SPRING_PROFILES_ACTIVE: "local"
         ALLOWED_ORIGINS: "*"
@@ -13,6 +18,7 @@ services:
         EXPOSED-HEADERS: "*"
     networks:
       - default
+
 
 networks:
   default:

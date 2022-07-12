@@ -23,11 +23,10 @@ import java.util.NoSuchElementException;
 public class StatusController {
     private final RestaurantRepository restaurantRepository;
     private final RestaurantService restaurantService;
-
-
     private final ObjectMapper objectMapper;
     @Autowired
-    public StatusController(RestaurantRepository restaurantRepository, ObjectMapper objectMapper, RestaurantService restaurantService) {
+    public StatusController(RestaurantRepository restaurantRepository, ObjectMapper objectMapper,
+                            RestaurantService restaurantService) {
         this.restaurantRepository = restaurantRepository;
         this.objectMapper = objectMapper;
         this.restaurantService = restaurantService;
@@ -41,19 +40,21 @@ public class StatusController {
         Restaurant restaurant = verifyRestaurant(restaurantId);
         restaurant.setStatus(request.getStatus());
         restaurantRepository.save(restaurant);
-        log.info("Saving restaurant data - Success");
-        String orderAsMessage;
+        log.info(String.format("%s restaurant status is updated to: %s ", restaurantId, request.getStatus()));
 
+        String reqAsMessage;
+
+        /**
+         * we can throw this error instead of using try catch, But I used try catch here to implement
+         * custom exception handling and then central exception handling to the project
+          */
         try {
-            orderAsMessage = objectMapper.writeValueAsString(restaurant);
-        }
-        // catch if any json processing exeption and then pass
-         catch(JsonProcessingException jsonProcessingException){
-            //passing the exception and then this will be catched from central exception handling
+            reqAsMessage = objectMapper.writeValueAsString(restaurant);
+        } catch(JsonProcessingException jsonProcessingException) {
              throw new RestaurantManagementException("invalid.json.format",jsonProcessingException.getMessage() , "");
          }
 
-        restaurantService.sendMessage(orderAsMessage);
+        restaurantService.sendMessage(reqAsMessage);
 
         return restaurant;
     }
